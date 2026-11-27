@@ -1,6 +1,25 @@
+import { Suspense } from 'react'
+import { prisma } from '@/lib/prisma'
+import ProjectManager from './ProjectManager'
 import { FolderGit2 } from 'lucide-react'
 
-export default function ProjectsAdminPage() {
+async function ProjectsLoader() {
+  const [projects, allSkills] = await Promise.all([
+    prisma.project.findMany({
+      include: {
+        skills: {
+          include: {
+            skill: true,
+          },
+        },
+      },
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+    }),
+    prisma.skill.findMany({
+      orderBy: { name: 'asc' },
+    }),
+  ])
+
   return (
     <div className="space-y-6">
       <div className="border-b border-neutral-800/80 pb-5">
@@ -11,16 +30,25 @@ export default function ProjectsAdminPage() {
           </h1>
         </div>
         <p className="text-xs font-mono text-neutral-400 mt-1">
-          Portfolio project catalog and showcase deployments
+          Curate portfolio builds, Cloudinary cover media, deployment links, and technical stacks
         </p>
       </div>
 
-      <div className="p-12 text-center border border-neutral-800/80 bg-neutral-900/30 rounded-lg font-mono text-xs space-y-2">
-        <p className="text-neutral-300 font-semibold">Projects Module Active</p>
-        <p className="text-neutral-500">
-          Projects and Cloudinary showcase configuration is queued for Phase 3.2.
-        </p>
-      </div>
+      <ProjectManager projects={projects} allSkills={allSkills} />
     </div>
+  )
+}
+
+export default function ProjectsAdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 font-mono text-xs text-neutral-500">
+          Loading project catalog...
+        </div>
+      }
+    >
+      <ProjectsLoader />
+    </Suspense>
   )
 }

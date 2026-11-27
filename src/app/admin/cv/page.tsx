@@ -1,6 +1,20 @@
+import { Suspense } from 'react'
+import { prisma } from '@/lib/prisma'
+import CVManager from './CVManager'
 import { FileText } from 'lucide-react'
 
-export default function CVAdminPage() {
+async function CVLoader() {
+  const cvs = await prisma.cV.findMany({
+    orderBy: [{ isActive: 'desc' }, { uploadedAt: 'desc' }],
+    include: {
+      admin: {
+        select: {
+          email: true,
+        },
+      },
+    },
+  })
+
   return (
     <div className="space-y-6">
       <div className="border-b border-neutral-800/80 pb-5">
@@ -11,16 +25,25 @@ export default function CVAdminPage() {
           </h1>
         </div>
         <p className="text-xs font-mono text-neutral-400 mt-1">
-          Upload, activate, and manage public downloadable resume documents
+          Upload PDF resumes to Cloudinary, activate the live version, preview, and manage archives
         </p>
       </div>
 
-      <div className="p-12 text-center border border-neutral-800/80 bg-neutral-900/30 rounded-lg font-mono text-xs space-y-2">
-        <p className="text-neutral-300 font-semibold">CV Management Engine Active</p>
-        <p className="text-neutral-500">
-          Direct Cloudinary PDF streaming and document activation queued for Phase 3.2.
-        </p>
-      </div>
+      <CVManager cvs={cvs} />
     </div>
+  )
+}
+
+export default function CVAdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 font-mono text-xs text-neutral-500">
+          Loading CV archive...
+        </div>
+      }
+    >
+      <CVLoader />
+    </Suspense>
   )
 }
